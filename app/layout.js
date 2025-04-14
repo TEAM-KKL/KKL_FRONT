@@ -13,6 +13,11 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   title: "KMAP",
+  icons: {
+    icon: "/icon.png",
+    apple: "/icon.png",
+    shortcut: "/icon.png",
+  },
   description: "KoreatechMAP",
 };
 
