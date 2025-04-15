@@ -20,7 +20,7 @@
   display: flex;
   width: 300px;
   background-color: rgba(255, 255, 255, 0.8);
-  border-radius: 8px;
+  border-radius: 8px 8px 0 0;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
   overflow: hidden;
 }
@@ -32,7 +32,7 @@
   font-size: 16px;
   outline: none;
   background-color: transparent;
-  color: #000000;
+  color: #000;
 }
 
 .searchButton {
@@ -46,4 +46,57 @@
 
 .searchButton:hover {
   background-color: #1a5dcc;
+}
+
+.resultsContainer {
+  position: absolute;
+  top: 60px;
+  left: 20px;
+  z-index: 1000;
+  width: 300px;
+  max-height: 300px;
+  overflow-y: auto;
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* 웹킷 기반 브라우저(크롬, 사파리, 엣지 등)용 스크롤바 스타일 */
+.resultsContainer::-webkit-scrollbar {
+  width: 6px;
+}
+
+.resultsContainer::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.resultsContainer::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  border: 2px solid transparent;
+}
+
+.resultsContainer::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+.resultsList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.resultItem {
+  padding: 10px 15px;
+  border-bottom: 1px solid rgba(238, 238, 238, 0.7);
+  cursor: pointer;
+  color: #000;
+}
+
+.resultItem:last-child {
+  border-bottom: none;
+}
+
+.resultItem:hover {
+  background-color: rgba(245, 245, 245, 0.8);
 }

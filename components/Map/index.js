@@ -1,13 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useRef } from "react";
 import Script from "next/script";
 import styles from "./index.module.css";
 
 export default function MapPage() {
   const [map, setMap] = useState(null);
   const [searchAddress, setSearchAddress] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const markersRef = useRef([]);
+  const infoWindowsRef = useRef([]);
   const clientId = process.env.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID;
+  const naverClientId = process.env.NEXT_PUBLIC_NAVER_CLIENT_ID;
+  const naverClientSecret = process.env.NEXT_PUBLIC_NAVER_CLIENT_SECRET;
 
   const initMap = () => {
     if (!window.naver || !window.naver.maps) {
@@ -16,7 +21,6 @@ export default function MapPage() {
     }
 
     const mapOptions = {
-      //뷰어 초기좌표 한기대
       center: new window.naver.maps.LatLng(36.765104950533, 127.281200389603),
       zoom: 15,
     };
@@ -25,55 +29,153 @@ export default function MapPage() {
     setMap(mapInstance);
   };
 
-  const handleSearch = (e) => {
+  const clearMarkers = () => {
+    markersRef.current.forEach((marker) => marker.setMap(null));
+    markersRef.current = [];
+    infoWindowsRef.current = [];
+  };
+
+  const handleSearch = async (e) => {
     e.preventDefault();
-    if (
-      !searchAddress ||
-      !map ||
-      !window.naver ||
-      !window.naver.maps ||
-      !window.naver.maps.Service
-    ) {
-      console.error("검색 준비 안됨");
-      alert("지도 또는 검색 기능이 아직 준비되지 않았습니다.");
+
+    if (!searchAddress.trim()) {
+      alert("검색어를 입력해주세요.");
       return;
     }
 
-    window.naver.maps.Service.geocode(
-      {
-        query: searchAddress,
-      },
-      (status, response) => {
-        if (status !== window.naver.maps.Service.Status.OK) {
-          console.error("Geocoding 실패:", status, response);
-          return alert("주소 검색에 실패했습니다. 다시 시도해주세요.");
-        }
+    try {
+      const response = await fetch(
+        `/api/search?query=${encodeURIComponent(searchAddress)}`
+      );
 
-        if (response.v2.addresses.length === 0) {
-          return alert("검색 결과가 없습니다.");
-        }
-
-        const result = response.v2.addresses[0];
-        const point = new window.naver.maps.Point(result.x, result.y);
-        map.setCenter(point);
-        // Optionally, add a marker
-        // new window.naver.maps.Marker({
-        //   position: point,
-        //   map: map,
-        // });
+      if (!response.ok) {
+        throw new Error("지역 검색 API 요청 실패");
       }
-    );
+
+      const data = await response.json();
+
+      if (data.items && data.items.length === 0) {
+        alert("검색 결과가 없습니다.");
+        setSearchResults([]);
+        clearMarkers();
+        return;
+      }
+
+      setSearchResults(data.items);
+      clearMarkers();
+
+      const bounds = new window.naver.maps.LatLngBounds();
+
+      data.items.forEach((item, index) => {
+        let lat, lng;
+
+        if (item.mapy && item.mapx) {
+          lat = parseFloat(item.mapy) / 10000000;
+          lng = parseFloat(item.mapx) / 10000000;
+
+          if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) {
+            console.error("잘못된 좌표:", item);
+            return;
+          }
+
+          console.log(`항목 ${index} 변환된 좌표: ${lat}, ${lng}`);
+        } else {
+          console.error("좌표 정보가 없는 항목:", item);
+          return;
+        }
+
+        const position = new window.naver.maps.LatLng(lat, lng);
+
+        bounds.extend(position);
+
+        const marker = new window.naver.maps.Marker({
+          position,
+          map,
+          title: item.title.replace(/<[^>]*>?/g, ""),
+        });
+
+        const infoWindow = new window.naver.maps.InfoWindow({
+          content: `<div style="padding:10px;">${item.title.replace(
+            /<[^>]*>?/g,
+            ""
+          )}</div>`,
+        });
+
+        marker.addListener("click", () => {
+          infoWindowsRef.current.forEach((infowin) => infowin.close());
+          infoWindow.open(map, marker);
+        });
+
+        markersRef.current.push(marker);
+        infoWindowsRef.current.push(infoWindow);
+      });
+
+      map.fitBounds(bounds);
+    } catch (error) {
+      console.error("검색 중 오류 발생:", error);
+      alert("검색 중 오류가 발생했습니다.");
+    }
   };
 
-  if (!clientId) {
-    console.warn("Naver 지도 Client ID가 설정되지 않았습니다.");
+  const handleListItemClick = (index) => {
+    const marker = markersRef.current[index];
+    const infoWindow = infoWindowsRef.current[index];
+
+    if (marker && infoWindow && map) {
+      try {
+        const position = marker.getPosition();
+        console.log("이동할 위치:", position);
+
+        const lat = position.y / 10000000 || position._lat / 10000000;
+        const lng = position.x / 10000000 || position._lng / 10000000;
+
+        if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+          console.log("변환된 좌표로 이동:", lat, lng);
+          const convertedPosition = new window.naver.maps.LatLng(lat, lng);
+          map.panTo(convertedPosition);
+        } else {
+          console.log("원본 좌표 그대로 이동");
+          map.panTo(position);
+        }
+
+        setTimeout(() => {
+          map.setZoom(17);
+        }, 350);
+
+        infoWindowsRef.current.forEach((infowin) => infowin.close());
+
+        setTimeout(() => {
+          infoWindow.open(map, marker);
+        }, 400);
+
+        if (window.naver && window.naver.maps && window.naver.maps.Animation) {
+          marker.setAnimation(window.naver.maps.Animation.BOUNCE);
+          setTimeout(() => {
+            marker.setAnimation(null);
+          }, 2100);
+        }
+      } catch (e) {
+        console.error("지도 이동 중 오류:", e);
+        alert("지도 이동 중 오류가 발생했습니다.");
+      }
+    } else {
+      console.error("마커, 정보창 또는 지도가 없습니다:", {
+        marker,
+        infoWindow,
+        map,
+      });
+    }
+  };
+
+  if (!clientId || !naverClientId || !naverClientSecret) {
+    console.warn("환경변수가 설정되지 않았습니다.");
     return <p>지도 로딩 오류: 환경변수를 확인하세요.</p>;
   }
 
   return (
     <>
       <Script
-        src={`https://openapi.map.naver.com/openapi/v3/maps.js?ncpClientId=${clientId}&submodules=geocoder`}
+        src={`https://openapi.map.naver.com/openapi/v3/maps.js?ncpClientId=${clientId}`}
         strategy="afterInteractive"
         onLoad={initMap}
         id="naver-map-script"
@@ -84,13 +186,28 @@ export default function MapPage() {
             type="text"
             value={searchAddress}
             onChange={(e) => setSearchAddress(e.target.value)}
-            placeholder="주소를 입력하세요"
+            placeholder="주소 또는 건물명을 입력하세요"
             className={styles.searchInput}
           />
           <button type="submit" className={styles.searchButton}>
             검색
           </button>
         </form>
+        <div className={styles.resultsContainer}>
+          <ul className={styles.resultsList}>
+            {searchResults.map((item, index) => (
+              <li
+                key={index}
+                className={styles.resultItem}
+                onClick={() => handleListItemClick(index)}
+              >
+                <strong>{item.title.replace(/<[^>]*>?/g, "")}</strong>
+                <br />
+                {item.address}
+              </li>
+            ))}
+          </ul>
+        </div>
         <div id="map" className={styles.map}></div>
       </div>
     </>
