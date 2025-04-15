@@ -32,7 +32,8 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             cd ~/next-app
+            echo "${{ secrets.ENV_CONTENT }}" > .env.production
             npm install
             npm run build
             pm2 delete next-app || true
-            pm2 start "npm run start" --name next-app
+            pm2 start ecosystem.config.js
