@@ -22,7 +22,7 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           command_timeout: 30m
           script: |
-            cd ~/next-app
+            cd ~/KKL_FRONT
             echo "${{ secrets.ENV_CONTENT }}" > .env.production
             rm -rf node_modules package-lock.json  
             npm install
