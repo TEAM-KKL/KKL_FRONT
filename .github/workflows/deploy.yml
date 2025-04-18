@@ -22,25 +22,25 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           command_timeout: 300m
           script: |
-            ssh -tt -p 22222 -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << EOF
-              cd ~/KKL_FRONT
-              echo "[1] 이동 완료"
+            cd ~/KKL_FRONT
+            echo "[1] 이동 완료"
 
-              echo "${{ secrets.ENV_CONTENT }}" > .env.production
-              echo "[2] .env.production 생성 완료"
+            echo "${{ secrets.ENV_CONTENT }}" > .env.production
+            echo "[2] .env.production 생성 완료"
 
-              rm -rf node_modules package-lock.json
-              echo "[3] node_modules, package-lock.json 삭제 완료"
+            rm -rf node_modules package-lock.json
+            echo "[3] node_modules, package-lock.json 삭제 완료"
 
-              npm install
-              echo "[4] npm install 완료"
+            npm install
+            echo "[4] npm install 완료"
 
-              npm run build
-              echo "[5] npm run build 완료"
+            npm run build
+            echo "[5] npm run build 완료"
 
-              pm2 delete next-app || true
-              echo "[6] 기존 pm2 프로세스 삭제 완료 (있으면)"
+            pm2 delete next-app || true
+            echo "[6] 기존 pm2 프로세스 삭제 완료 (있으면)"
 
-              pm2 start ecosystem.config.js
-              echo "[7] pm2로 서버 시작 완료"
-            EOF
+            pm2 start ecosystem.config.js
+            echo "[7] pm2로 서버 시작 완료"
+
+            exit 0
