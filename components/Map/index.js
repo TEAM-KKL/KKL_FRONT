@@ -95,10 +95,15 @@ export default function MapPage() {
         });
 
         const infoWindow = new window.naver.maps.InfoWindow({
-          content: `<div style="padding:10px;">${item.title.replace(
+          content: `
+            <div class="${styles.infoWindow}">
+              <div class="${styles.infoWindowTitle}">${item.title.replace(
             /<[^>]*>?/g,
             ""
-          )}</div>`,
+          )}</div>
+              <div class="${styles.infoWindowAddress}">${item.address}</div>
+            </div>
+          `,
         });
 
         marker.addListener("click", () => {
@@ -126,33 +131,32 @@ export default function MapPage() {
         const position = marker.getPosition();
         console.log("이동할 위치:", position);
 
-        const lat = position.y / 10000000 || position._lat / 10000000;
-        const lng = position.x / 10000000 || position._lng / 10000000;
+        const lat = position.lat();
+        const lng = position.lng();
 
         if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
           console.log("변환된 좌표로 이동:", lat, lng);
           const convertedPosition = new window.naver.maps.LatLng(lat, lng);
-          map.panTo(convertedPosition);
-        } else {
-          console.log("원본 좌표 그대로 이동");
-          map.panTo(position);
-        }
 
-        setTimeout(() => {
-          map.setZoom(17);
-        }, 350);
+          map.setCenter(convertedPosition);
+          map.setZoom(18);
 
-        infoWindowsRef.current.forEach((infowin) => infowin.close());
-
-        setTimeout(() => {
+          infoWindowsRef.current.forEach((infowin) => infowin.close());
           infoWindow.open(map, marker);
-        }, 400);
 
-        if (window.naver && window.naver.maps && window.naver.maps.Animation) {
-          marker.setAnimation(window.naver.maps.Animation.BOUNCE);
-          setTimeout(() => {
-            marker.setAnimation(null);
-          }, 2100);
+          if (
+            window.naver &&
+            window.naver.maps &&
+            window.naver.maps.Animation
+          ) {
+            marker.setAnimation(window.naver.maps.Animation.BOUNCE);
+            setTimeout(() => {
+              marker.setAnimation(null);
+            }, 2100);
+          }
+        } else {
+          console.error("유효하지 않은 좌표:", lat, lng);
+          alert("위치 정보가 올바르지 않습니다.");
         }
       } catch (e) {
         console.error("지도 이동 중 오류:", e);

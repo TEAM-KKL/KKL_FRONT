@@ -44,10 +44,6 @@
   font-size: 16px;
 }
 
-.searchButton:hover {
-  background-color: #1a5dcc;
-}
-
 .resultsContainer {
   position: absolute;
   top: 60px;
@@ -99,4 +95,24 @@
 
 .resultItem:hover {
   background-color: rgba(245, 245, 245, 0.8);
+}
+
+.infoWindow {
+  padding: 10px;
+  min-width: 200px;
+  max-width: 300px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.infoWindowTitle {
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: #333;
+}
+
+.infoWindowAddress {
+  font-size: 14px;
+  color: #666;
 }
