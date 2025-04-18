@@ -129,13 +129,11 @@ export default function MapPage() {
     if (marker && infoWindow && map) {
       try {
         const position = marker.getPosition();
-        console.log("이동할 위치:", position);
 
         const lat = position.lat();
         const lng = position.lng();
 
         if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
-          console.log("변환된 좌표로 이동:", lat, lng);
           const convertedPosition = new window.naver.maps.LatLng(lat, lng);
 
           map.setCenter(convertedPosition);

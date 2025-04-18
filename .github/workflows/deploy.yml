@@ -1,0 +1,50 @@
+name: Build and Deploy Next.js App to Nginx Server
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60 # 넉넉하게 60분 설정 (빌드 오래 걸릴 때 대비)
+
+    steps:
+      - name: 📦 Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: 🛠 Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18" # 프로젝트 Node 버전에 맞춰!
+
+      - name: 📥 Install dependencies
+        run: |
+          npm install --legacy-peer-deps
+
+      - name: 🏗 Build project
+        run: |
+          npm run build
+
+      - name: 📂 Upload build files to server
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          port: 22222
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: ".next,public,package.json,ecosystem.config.js,.env.production"
+          target: "~/KKL_FRONT"
+
+      - name: 🖥 Restart PM2 process on server
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          port: 22222
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd ~/KKL_FRONT
+            pm2 delete kmap || true
+            pm2 start ecosystem.config.js
