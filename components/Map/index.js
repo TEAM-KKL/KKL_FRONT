@@ -8,8 +8,10 @@ export default function MapPage() {
   const [map, setMap] = useState(null);
   const [searchAddress, setSearchAddress] = useState("");
   const [searchResults, setSearchResults] = useState([]);
+  const [currentLocation, setCurrentLocation] = useState(null);
   const markersRef = useRef([]);
   const infoWindowsRef = useRef([]);
+  const currentLocationMarkerRef = useRef(null);
   const clientId = process.env.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID;
   const naverClientId = process.env.NEXT_PUBLIC_NAVER_CLIENT_ID;
   const naverClientSecret = process.env.NEXT_PUBLIC_NAVER_CLIENT_SECRET;
@@ -27,6 +29,50 @@ export default function MapPage() {
 
     const mapInstance = new window.naver.maps.Map("map", mapOptions);
     setMap(mapInstance);
+  };
+
+  const getCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert("브라우저에서 위치 정보를 지원하지 않습니다.");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        setCurrentLocation({ lat, lng });
+
+        if (map) {
+          const currentPosition = new window.naver.maps.LatLng(lat, lng);
+
+          // 기존 현재 위치 마커 제거
+          if (currentLocationMarkerRef.current) {
+            currentLocationMarkerRef.current.setMap(null);
+          }
+
+          // 새로운 현재 위치 마커 생성
+          const marker = new window.naver.maps.Marker({
+            position: currentPosition,
+            map: map,
+            icon: {
+              content: `<div style="background-color: #4285F4; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white;"></div>`,
+              anchor: new window.naver.maps.Point(6, 6),
+            },
+          });
+
+          currentLocationMarkerRef.current = marker;
+          map.setCenter(currentPosition);
+          map.setZoom(18);
+        }
+      },
+      (error) => {
+        console.error("위치 정보를 가져오는 중 오류 발생:", error);
+        alert(
+          "위치 정보를 가져올 수 없습니다. 위치 정보 접근 권한을 확인해주세요."
+        );
+      }
+    );
   };
 
   const clearMarkers = () => {
@@ -195,6 +241,15 @@ export default function MapPage() {
             검색
           </button>
         </form>
+        <button
+          className={styles.locationButton}
+          onClick={getCurrentLocation}
+          title="현재 위치로 이동"
+        >
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+            <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z" />
+          </svg>
+        </button>
         <div className={styles.resultsContainer}>
           <ul className={styles.resultsList}>
             {searchResults.map((item, index) => (
