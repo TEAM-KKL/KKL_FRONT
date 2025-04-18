@@ -8,7 +8,7 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 60 # 빌드 오래 걸릴 대비
+    timeout-minutes: 60 # 넉넉하게 60분 설정
 
     steps:
       - name: 📦 Checkout Repository
@@ -17,10 +17,20 @@ jobs:
       - name: 🛠 Install Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "18" # 너가 사용하는 Node 버전
+          node-version: "18" # 너 Node 버전
 
       - name: 📥 Install dependencies
         run: |
+          npm install --legacy-peer-deps
+
+      - name: 🏗 Create .env.production
+        run: |
+          echo "${{ secrets.ENV_CONTENT }}" > .env.production
+          echo "[✅] .env.production 파일 생성 완료"
+
+      - name: 🛠 Reinstall modules (확실히)
+        run: |
+          rm -rf node_modules package-lock.json
           npm install --legacy-peer-deps
 
       - name: 🏗 Build project
@@ -34,10 +44,10 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          source: ".next,public,package.json,ecosystem.config.js"
+          source: ".next,public,package.json,ecosystem.config.js,.env.production"
           target: "~/KKL_FRONT"
 
-      - name: 🖥 Create env file and Restart PM2
+      - name: 🖥 Restart PM2 process
         uses: appleboy/ssh-action@v0.1.10
         with:
           port: 22222
@@ -46,7 +56,5 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             cd ~/KKL_FRONT
-            echo "${{ secrets.ENV_CONTENT }}" > .env.production
-            echo "[✅] .env.production 생성 완료"
             pm2 delete kmap || true
             pm2 start ecosystem.config.js
