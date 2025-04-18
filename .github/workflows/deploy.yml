@@ -3,7 +3,7 @@ name: Deploy Next.js App to Nginx Server
 on:
   push:
     branches:
-      - main # main 브랜치 푸시 시 자동 배포
+      - main
 
 jobs:
   deploy:
@@ -22,7 +22,6 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             cd ~/next-app
-            git pull origin main
             echo "${{ secrets.ENV_CONTENT }}" > .env.production
             rm -rf node_modules package-lock.json  
             npm install
